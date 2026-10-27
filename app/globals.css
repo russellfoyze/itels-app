@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f4f6f8;
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --border-color: #d1d5db;
+  --accent-navy: #002B49;
+  --accent-blue: #005ea5;
+  --accent-red: #d5281b;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  margin: 0;
+  padding: 0;
+}
+
+/* Accessibility Modes */
+.theme-high-contrast {
+  --bg-primary: #000000;
+  --bg-secondary: #121212;
+  --text-primary: #ffffff;
+  --text-secondary: #e0e0e0;
+  --border-color: #555555;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.theme-yellow-on-black {
+  --bg-primary: #000000;
+  --bg-secondary: #1a1a1a;
+  --text-primary: #ffee00;
+  --text-secondary: #fffa80;
+  --border-color: #887700;
+  background-color: #000000 !important;
+  color: #ffee00 !important;
+}
+
+/* Font Sizing Controls */
+.font-size-standard {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.font-size-large {
+  font-size: 18px;
+  line-height: 1.7;
+}
+
+.font-size-xlarge {
+  font-size: 21px;
+  line-height: 1.8;
+}
+
+/* Text Highlighting in Passage */
+mark.ielts-highlight {
+  background-color: #fef08a;
+  color: #000000;
+  padding: 1px 3px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.theme-high-contrast mark.ielts-highlight {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.theme-yellow-on-black mark.ielts-highlight {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+/* Sticky notes */
+.ielts-note-badge {
+  display: inline-block;
+  background-color: #fbbf24;
+  color: #78350f;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 4px;
+  cursor: pointer;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
