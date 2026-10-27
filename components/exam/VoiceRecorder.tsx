@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Play, Square, RefreshCw, Volume2, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Mic, Square, Volume2, Sparkles } from 'lucide-react';
 
 interface VoiceRecorderProps {
   onTranscriptReady: (transcript: string, durationSeconds: number) => void;
@@ -20,7 +20,6 @@ export function VoiceRecorder({
   const [recordDuration, setRecordDuration] = useState<number>(0);
   const [transcript, setTranscript] = useState<string>('');
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = useState<boolean>(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -29,13 +28,11 @@ export function VoiceRecorder({
   const animationFrameRef = useRef<number | null>(null);
   const recognitionRef = useRef<any>(null);
 
-  // Check speech recognition support
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const SpeechRecognition =
         (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
-        setIsSpeechRecognitionSupported(true);
         const recog = new SpeechRecognition();
         recog.continuous = true;
         recog.interimResults = true;
@@ -54,7 +51,6 @@ export function VoiceRecorder({
     }
   }, []);
 
-  // Prep timer countdown
   useEffect(() => {
     if (!isPrepping) return;
     const interval = setInterval(() => {
@@ -71,7 +67,6 @@ export function VoiceRecorder({
     return () => clearInterval(interval);
   }, [isPrepping]);
 
-  // Recording duration timer
   useEffect(() => {
     if (!isRecording) return;
     const interval = setInterval(() => {
@@ -97,7 +92,6 @@ export function VoiceRecorder({
       audioChunksRef.current = [];
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // Visualizer
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       audioContextRef.current = audioCtx;
       const source = audioCtx.createMediaStreamSource(stream);
@@ -107,6 +101,8 @@ export function VoiceRecorder({
 
       const canvas = canvasRef.current;
       if (canvas) {
+        // Adjust canvas width to container width
+        canvas.width = canvas.parentElement?.clientWidth || 320;
         const ctx = canvas.getContext('2d');
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
@@ -129,7 +125,6 @@ export function VoiceRecorder({
         draw();
       }
 
-      // MediaRecorder
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
 
@@ -152,7 +147,6 @@ export function VoiceRecorder({
       setIsRecording(true);
       setRecordDuration(0);
 
-      // Start speech recognition
       if (recognitionRef.current) {
         try {
           recognitionRef.current.start();
@@ -185,27 +179,27 @@ export function VoiceRecorder({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-5">
+    <div className="bg-white rounded-xl border border-gray-200 p-3.5 sm:p-5 shadow-sm space-y-4">
       {/* Timer & Controls Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
         <div>
           {isPrepping ? (
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-amber-500 animate-ping"></span>
-              <span className="text-sm font-bold text-amber-700">
-                1-Minute Preparation Time: {prepTimeLeft}s
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+              <span className="text-xs sm:text-sm font-bold text-amber-700">
+                1-Min Prep: {prepTimeLeft}s
               </span>
             </div>
           ) : isRecording ? (
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-red-600 animate-pulse"></span>
-              <span className="text-sm font-bold text-red-600">
-                Recording Candidate Response: {recordDuration}s / {speechSeconds}s
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
+              <span className="text-xs sm:text-sm font-bold text-red-600">
+                Recording: {recordDuration}s / {speechSeconds}s
               </span>
             </div>
           ) : (
-            <div className="text-sm font-medium text-gray-700">
-              Microphone status: Ready
+            <div className="text-xs sm:text-sm font-medium text-gray-700">
+              Mic Status: Ready
             </div>
           )}
         </div>
@@ -214,62 +208,62 @@ export function VoiceRecorder({
           {!isPrepping && !isRecording && (
             <button
               onClick={startPrep}
-              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-md shadow-xs transition"
+              className="px-2.5 sm:px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-md shadow-xs transition"
             >
-              Start 1-Min Prep
+              1-Min Prep
             </button>
           )}
 
           {!isRecording ? (
             <button
               onClick={startRecording}
-              className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md shadow-xs transition flex items-center gap-1.5"
+              className="px-3 sm:px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md shadow-xs transition flex items-center gap-1"
             >
-              <Mic className="w-4 h-4" />
-              <span>Start Speaking</span>
+              <Mic className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>Record</span>
             </button>
           ) : (
             <button
               onClick={stopRecording}
-              className="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-md shadow-xs transition flex items-center gap-1.5"
+              className="px-3 sm:px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-md shadow-xs transition flex items-center gap-1"
             >
-              <Square className="w-4 h-4" />
-              <span>Finish Speaking</span>
+              <Square className="w-3.5 h-3.5" />
+              <span>Done</span>
             </button>
           )}
         </div>
       </div>
 
       {/* Visualizer Canvas */}
-      <div className="h-14 bg-gray-900 rounded-lg flex items-center justify-center overflow-hidden p-1">
-        <canvas ref={canvasRef} width={400} height={50} className="w-full h-full"></canvas>
+      <div className="h-12 bg-gray-900 rounded-lg flex items-center justify-center overflow-hidden p-1 w-full">
+        <canvas ref={canvasRef} height={48} className="w-full h-full"></canvas>
       </div>
 
-      {/* Audio Playback if recorded */}
+      {/* Audio Playback */}
       {audioUrl && (
-        <div className="flex items-center gap-3 p-3 bg-blue-50/50 rounded-lg border border-blue-200">
-          <Volume2 className="w-5 h-5 text-blue-600 shrink-0" />
+        <div className="flex items-center gap-2.5 p-2.5 bg-blue-50/50 rounded-lg border border-blue-200">
+          <Volume2 className="w-4 h-4 text-blue-600 shrink-0" />
           <audio controls src={audioUrl} className="w-full h-8" />
         </div>
       )}
 
-      {/* Real-time / Editable Speech Transcript */}
+      {/* Transcript Textarea */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-purple-600" />
-            Candidate Speech Transcript (Auto-Generated & Editable)
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+            Speech Transcript
           </label>
-          <span className="text-xs text-gray-500">
+          <span className="text-[11px] text-gray-500">
             {transcript.trim().split(/\s+/).filter(Boolean).length} words
           </span>
         </div>
         <textarea
-          rows={5}
+          rows={4}
           value={transcript}
           onChange={(e) => setTranscript(e.target.value)}
-          placeholder="Speak into your microphone to record speech, or type/paste candidate speaking response here..."
-          className="w-full p-3 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white"
+          placeholder="Speak into microphone or type/paste your speech transcript..."
+          className="w-full p-3 text-xs sm:text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white"
         />
       </div>
 
@@ -277,10 +271,10 @@ export function VoiceRecorder({
       <div className="flex justify-end">
         <button
           onClick={handleSubmit}
-          className="px-6 py-2.5 bg-[#002B49] hover:bg-[#003860] text-white text-sm font-semibold rounded-lg shadow-md transition flex items-center gap-2"
+          className="w-full sm:w-auto px-5 py-2.5 bg-[#002B49] hover:bg-[#003860] text-white text-xs sm:text-sm font-semibold rounded-lg shadow-md transition flex items-center justify-center gap-1.5"
         >
           <Sparkles className="w-4 h-4 text-yellow-300" />
-          <span>Score My Speaking With Gemini AI</span>
+          <span>Score My Speaking With AI</span>
         </button>
       </div>
     </div>

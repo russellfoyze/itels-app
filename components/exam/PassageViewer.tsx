@@ -8,11 +8,8 @@ import {
   Play,
   Pause,
   Square,
-  FastForward,
   BookOpen,
   X,
-  Sparkles,
-  HelpCircle,
   Languages,
 } from 'lucide-react';
 import { ieltsAcademicDictionary } from '@/data/ieltsHelperData';
@@ -40,17 +37,16 @@ export function PassageViewer({ title, subtitle, content }: PassageViewerProps) 
   // Text to Speech (TTS) Read-Text State
   const [isReading, setIsReading] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
-  const [speechRate, setSpeechRate] = useState<number>(1.0); // 0.75x, 1.0x, 1.25x, 1.5x
+  const [speechRate, setSpeechRate] = useState<number>(1.0);
   const [activeWordIndex, setActiveWordIndex] = useState<number | null>(null);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceName, setSelectedVoiceName] = useState<string>('');
-  const [showSpeedMenu, setShowSpeedMenu] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const activeWordSpanRef = useRef<HTMLSpanElement | null>(null);
 
-  // Tokenize content into paragraphs and word tokens with character offsets
+  // Tokenize content into paragraphs and word tokens
   const tokenizedParagraphs = useMemo(() => {
     let globalCharIndex = 0;
     let globalWordId = 0;
@@ -84,12 +80,11 @@ export function PassageViewer({ title, subtitle, content }: PassageViewerProps) 
     });
   }, [content]);
 
-  // Flattened words list for speech boundary mapping
   const allWordTokens = useMemo(() => {
     return tokenizedParagraphs.flat();
   }, [tokenizedParagraphs]);
 
-  // Load available speech voices (focus on English)
+  // Load available speech voices
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
 
@@ -99,7 +94,6 @@ export function PassageViewer({ title, subtitle, content }: PassageViewerProps) 
       );
       setAvailableVoices(voices);
 
-      // Default to British English (en-GB) if available for authentic IELTS
       const british = voices.find((v) => v.lang === 'en-GB' || v.name.includes('British') || v.name.includes('UK'));
       if (british) {
         setSelectedVoiceName(british.name);
@@ -129,7 +123,6 @@ export function PassageViewer({ title, subtitle, content }: PassageViewerProps) 
     }
   }, [activeWordIndex]);
 
-  // Start Reading Aloud from the beginning or from a specific word
   const startReading = (startIndex: number = 0) => {
     if (!('speechSynthesis' in window)) {
       alert('Text-to-Speech is not supported by your browser.');
@@ -138,7 +131,6 @@ export function PassageViewer({ title, subtitle, content }: PassageViewerProps) 
 
     window.speechSynthesis.cancel();
 
-    // Prepare full text from startIndex
     const wordsToSpeak = allWordTokens.slice(startIndex);
     const textToSpeak = wordsToSpeak.map((w) => w.word).join(' ');
 
@@ -153,11 +145,9 @@ export function PassageViewer({ title, subtitle, content }: PassageViewerProps) 
       if (voice) utterance.voice = voice;
     }
 
-    // Word boundary tracking - point out the word as it is spoken!
     utterance.onboundary = (event) => {
       if (event.name === 'word') {
         const charIdx = event.charIndex;
-        // Find which token in wordsToSpeak corresponds to this charIndex
         let currentPos = 0;
         for (let i = 0; i < wordsToSpeak.length; i++) {
           const w = wordsToSpeak[i];
@@ -215,14 +205,11 @@ export function PassageViewer({ title, subtitle, content }: PassageViewerProps) 
 
   const handleSpeedChange = (newRate: number) => {
     setSpeechRate(newRate);
-    setShowSpeedMenu(false);
     if (isReading) {
-      // Restart from active word with updated speed
       startReading(activeWordIndex || 0);
     }
   };
 
-  // Selection Handler for Highlight, Note, and Dictionary
   const handleMouseUp = () => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) {
@@ -235,10 +222,10 @@ export function PassageViewer({ title, subtitle, content }: PassageViewerProps) 
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
       setSelectedWord(text);
-      setTooltipPos({
-        x: rect.left + rect.width / 2,
-        y: rect.top - 45,
-      });
+      // Clamp coordinates within screen
+      const x = Math.max(80, Math.min(window.innerWidth - 80, rect.left + rect.width / 2));
+      const y = Math.max(50, rect.top - 45);
+      setTooltipPos({ x, y });
     } else {
       setTooltipPos(null);
     }
@@ -278,7 +265,6 @@ export function PassageViewer({ title, subtitle, content }: PassageViewerProps) 
     setTooltipPos(null);
   };
 
-  // Direct word click to lookup or read from here
   const handleWordClick = (wordToken: WordToken) => {
     if (wordToken.cleanWord) {
       setActiveDictionaryWord(wordToken.cleanWord);
@@ -299,33 +285,33 @@ export function PassageViewer({ title, subtitle, content }: PassageViewerProps) 
 
   return (
     <div ref={containerRef} onMouseUp={handleMouseUp} className="relative select-text">
-      {/* 1. READ TEXT (TEXT-TO-SPEECH) CONTROL BAR */}
-      <div className="sticky top-0 z-30 mb-6 bg-gradient-to-r from-blue-900 to-[#002B49] text-white p-3 rounded-xl shadow-lg border border-blue-700/50 flex flex-wrap items-center justify-between gap-3">
+      {/* 1. READ TEXT CONTROL BAR (RESPONSIVE) */}
+      <div className="sticky top-0 z-30 mb-4 sm:mb-6 bg-gradient-to-r from-blue-900 to-[#002B49] text-white p-2.5 sm:p-3 rounded-xl shadow-lg border border-blue-700/50 flex flex-wrap items-center justify-between gap-2">
         {/* Playback Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           {!isReading ? (
             <button
               onClick={() => startReading(0)}
-              className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1.5"
+              className="px-2.5 sm:px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] sm:text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1"
               title="Start Read Aloud (Points out each word as spoken)"
             >
-              <Volume2 className="w-4 h-4" />
-              <span>Read Text (Point Words)</span>
+              <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span>Read Text</span>
             </button>
           ) : isPaused ? (
             <button
               onClick={resumeReading}
-              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1.5"
+              className="px-2.5 sm:px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[11px] sm:text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1"
             >
-              <Play className="w-4 h-4" />
+              <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
               <span>Resume</span>
             </button>
           ) : (
             <button
               onClick={pauseReading}
-              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1.5"
+              className="px-2.5 sm:px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[11px] sm:text-xs font-bold rounded-lg shadow-sm transition flex items-center gap-1"
             >
-              <Pause className="w-4 h-4" />
+              <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
               <span>Pause</span>
             </button>
           )}
@@ -333,47 +319,45 @@ export function PassageViewer({ title, subtitle, content }: PassageViewerProps) 
           {isReading && (
             <button
               onClick={stopReading}
-              className="px-2.5 py-1.5 bg-red-600/90 hover:bg-red-600 text-white text-xs font-semibold rounded-lg transition flex items-center gap-1"
+              className="px-2 py-1.5 bg-red-600/90 hover:bg-red-600 text-white text-[11px] sm:text-xs font-semibold rounded-lg transition flex items-center gap-1"
               title="Stop reading aloud"
             >
-              <Square className="w-3.5 h-3.5" />
+              <Square className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               <span>Stop</span>
             </button>
           )}
         </div>
 
         {/* Speed Adjustment Controls */}
-        <div className="flex items-center gap-3 text-xs">
-          {/* Speed Presets */}
+        <div className="flex items-center gap-1.5 sm:gap-3 text-xs">
           <div className="flex items-center bg-black/30 rounded-lg p-0.5 border border-white/10">
-            {[0.75, 1.0, 1.25, 1.5].map((speed) => (
+            {[0.75, 1.0, 1.25].map((speed) => (
               <button
                 key={speed}
                 onClick={() => handleSpeedChange(speed)}
-                className={`px-2 py-1 rounded text-xs font-semibold transition ${
+                className={`px-1.5 sm:px-2 py-1 rounded text-[11px] sm:text-xs font-semibold transition ${
                   speechRate === speed
                     ? 'bg-blue-500 text-white shadow-xs'
                     : 'text-gray-300 hover:text-white'
                 }`}
-                title={`Set voice reading speed to ${speed}x`}
+                title={`Set speed to ${speed}x`}
               >
                 {speed}x
               </button>
             ))}
           </div>
 
-          {/* Voice Accent Picker */}
           {availableVoices.length > 0 && (
-            <div className="hidden sm:flex items-center gap-1 bg-black/30 px-2 py-1 rounded-lg border border-white/10 text-xs">
+            <div className="hidden md:flex items-center gap-1 bg-black/30 px-2 py-1 rounded-lg border border-white/10 text-xs">
               <Languages className="w-3.5 h-3.5 text-blue-300" />
               <select
                 value={selectedVoiceName}
                 onChange={(e) => setSelectedVoiceName(e.target.value)}
-                className="bg-transparent text-white text-xs focus:outline-none cursor-pointer max-w-[130px] truncate"
+                className="bg-transparent text-white text-xs focus:outline-none cursor-pointer max-w-[110px] truncate"
               >
                 {availableVoices.map((v) => (
                   <option key={v.name} value={v.name} className="bg-gray-900 text-white">
-                    {v.name.replace(/Microsoft|Google/gi, '').trim()} ({v.lang})
+                    {v.name.replace(/Microsoft|Google/gi, '').trim()}
                   </option>
                 ))}
               </select>
@@ -382,45 +366,45 @@ export function PassageViewer({ title, subtitle, content }: PassageViewerProps) 
         </div>
       </div>
 
-      {/* Floating Selection Tooltip (Highlight, Note, Define) */}
+      {/* Floating Selection Tooltip */}
       {tooltipPos && (
         <div
           style={{ top: tooltipPos.y, left: tooltipPos.x, transform: 'translateX(-50%)' }}
-          className="fixed z-50 bg-[#002B49] text-white shadow-2xl rounded-lg px-3 py-1.5 flex items-center gap-2 text-xs border border-white/20 animate-in fade-in zoom-in-95 duration-100"
+          className="fixed z-50 bg-[#002B49] text-white shadow-2xl rounded-lg px-2.5 sm:px-3 py-1.5 flex items-center gap-1.5 sm:gap-2 text-xs border border-white/20 animate-in fade-in zoom-in-95 duration-100"
         >
           <button
             onClick={applyHighlight}
-            className="flex items-center gap-1 hover:text-yellow-300 font-medium px-1.5 py-0.5 rounded hover:bg-white/10 transition"
+            className="flex items-center gap-1 hover:text-yellow-300 font-medium px-1 py-0.5 rounded hover:bg-white/10 transition"
           >
-            <Highlighter className="w-3.5 h-3.5 text-yellow-300" />
-            <span>Highlight</span>
+            <Highlighter className="w-3 h-3 text-yellow-300" />
+            <span className="text-[11px]">Highlight</span>
           </button>
           <div className="w-px h-3.5 bg-white/20"></div>
           <button
             onClick={addNote}
-            className="flex items-center gap-1 hover:text-amber-300 font-medium px-1.5 py-0.5 rounded hover:bg-white/10 transition"
+            className="flex items-center gap-1 hover:text-amber-300 font-medium px-1 py-0.5 rounded hover:bg-white/10 transition"
           >
-            <StickyNote className="w-3.5 h-3.5 text-amber-300" />
-            <span>Note</span>
+            <StickyNote className="w-3 h-3 text-amber-300" />
+            <span className="text-[11px]">Note</span>
           </button>
           <div className="w-px h-3.5 bg-white/20"></div>
           <button
             onClick={openDictionaryForSelection}
-            className="flex items-center gap-1 hover:text-blue-300 font-medium px-1.5 py-0.5 rounded hover:bg-white/10 transition"
+            className="flex items-center gap-1 hover:text-blue-300 font-medium px-1 py-0.5 rounded hover:bg-white/10 transition"
           >
-            <BookOpen className="w-3.5 h-3.5 text-blue-300" />
-            <span>Define</span>
+            <BookOpen className="w-3 h-3 text-blue-300" />
+            <span className="text-[11px]">Define</span>
           </button>
         </div>
       )}
 
-      {/* Instant Academic Dictionary Popover */}
+      {/* Instant Academic Dictionary Popover - Mobile Safe Bounds */}
       {activeDictionaryWord && activeDictData && (
-        <div className="fixed bottom-16 left-6 z-50 max-w-sm w-full bg-white text-gray-900 p-4 rounded-xl shadow-2xl border-2 border-blue-600 animate-in slide-in-from-bottom-5">
+        <div className="fixed bottom-16 sm:bottom-20 inset-x-3 sm:inset-x-auto sm:left-6 sm:max-w-sm w-auto sm:w-full z-50 bg-white text-gray-900 p-3.5 sm:p-4 rounded-xl shadow-2xl border-2 border-blue-600 animate-in slide-in-from-bottom-5">
           <div className="flex items-start justify-between pb-2 border-b border-gray-200">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-base font-black text-[#002B49]">
+                <span className="text-sm sm:text-base font-black text-[#002B49]">
                   {activeDictData.word}
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded">
@@ -436,13 +420,13 @@ export function PassageViewer({ title, subtitle, content }: PassageViewerProps) 
             </div>
             <button
               onClick={() => setActiveDictionaryWord(null)}
-              className="text-gray-400 hover:text-gray-700 transition"
+              className="text-gray-400 hover:text-gray-700 transition p-1"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="mt-2.5 space-y-2 text-xs">
+          <div className="mt-2 space-y-1.5 text-xs">
             <p className="text-gray-800 leading-relaxed">
               <strong>Definition:</strong> {activeDictData.definition}
             </p>
@@ -462,19 +446,19 @@ export function PassageViewer({ title, subtitle, content }: PassageViewerProps) 
       )}
 
       {/* Title & Subtitle */}
-      <div className="mb-6 pb-4 border-b border-gray-200">
-        <h2 className="text-2xl font-black tracking-tight text-gray-900 mb-1">
+      <div className="mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-gray-200">
+        <h2 className="text-xl sm:text-2xl font-black tracking-tight text-gray-900 mb-1">
           {title}
         </h2>
         {subtitle && (
-          <p className="text-sm italic text-gray-600 font-serif">
+          <p className="text-xs sm:text-sm italic text-gray-600 font-serif">
             {subtitle}
           </p>
         )}
       </div>
 
-      {/* Main Passage Text with Synchronized Word Pointing */}
-      <div className="space-y-5 text-gray-800 leading-relaxed font-sans text-justify">
+      {/* Main Passage Text */}
+      <div className="space-y-4 sm:space-y-5 text-gray-800 leading-relaxed font-sans text-justify text-sm sm:text-base">
         {tokenizedParagraphs.map((paragraphWords, pIdx) => (
           <p key={pIdx} className="leading-relaxed">
             {paragraphWords.map((token) => {
@@ -489,7 +473,7 @@ export function PassageViewer({ title, subtitle, content }: PassageViewerProps) 
                       ? 'bg-blue-600 text-white font-bold px-1 py-0.5 rounded shadow-md ring-2 ring-blue-400 scale-105'
                       : 'hover:bg-blue-50 hover:text-blue-900'
                   }`}
-                  title="Click for dictionary definition / synonyms"
+                  title="Click for dictionary definition"
                 >
                   {token.word}{' '}
                 </span>
