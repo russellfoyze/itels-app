@@ -4,8 +4,10 @@ export function normalizeAnswer(ans: string): string {
     .toLowerCase()
     .trim()
     .replace(/^[a-z]\.\s*/i, '') // remove "A. " prefixes if present
-    .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, '') // remove punctuation
-    .replace(/\s+/g, ' '); // collapse whitespace
+    .replace(/[-_]/g, ' ') // convert hyphens and underscores to space
+    .replace(/[.,/#!$%^&*;:{}=`~()]/g, '') // remove other punctuation
+    .replace(/\s+/g, ' ') // collapse whitespace
+    .trim();
 }
 
 export function isAnswerCorrect(userAns: string | string[] | undefined, correctAns: string | string[]): boolean {
@@ -20,7 +22,6 @@ export function isAnswerCorrect(userAns: string | string[] | undefined, correctA
     const acceptable = Array.isArray(correctAns) ? correctAns : [correctAns];
 
     return acceptable.some((target) => {
-      // Split target alternatives like "forest / forests" or "forest(s)"
       const cleanTarget = target.toLowerCase();
       // Handle parentheses like "forest(s)" -> matches "forest" or "forests"
       if (cleanTarget.includes('(') && cleanTarget.includes(')')) {
